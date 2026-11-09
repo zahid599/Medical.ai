@@ -9,7 +9,8 @@ dns.setDefaultResultOrder("ipv4first");
 dotenv.config();
 
 // ---------- Debug helpers ----------
-const DEBUG = true; // set to false when everything works
+// Keep false for the public site. Set to true only while testing locally.
+const DEBUG = false;
 
 const log = (...args) => {
   if (DEBUG) console.log(new Date().toISOString(), "[DEBUG]", ...args);
@@ -29,33 +30,29 @@ process.on("unhandledRejection", (reason) => {
   console.error("[UNHANDLED REJECTION]", reason);
 });
 
-process.on("uncaughtException", (err) => {
-  console.error("[UNCAUGHT EXCEPTION]", err);
-});
-
 // ---------- Setup ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 
 app.use((req, res, next) => {
   log(`${req.method} ${req.url}`);
   next();
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 log("Node version:", process.version);
-log("API key loaded:", Boolean(apiKey), apiKey ? `(length ${apiKey.length})` : "");
+log("API key loaded:", Boolean(apiKey));
 
 // ---------- Website files ----------
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
-app.get("/script.js", (req, res) => res.sendFile(path.join(__dirname, "script.js")));
-app.get("/style.css", (req, res) => res.sendFile(path.join(__dirname, "style.css")));
+// Used when running locally (node server.js).
+// On Vercel this line is ignored and the "public" folder is served from the CDN.
+app.use(express.static(path.join(__dirname, "public")));
 
 const systemPrompt = `
 You are MedAura, an educational AI health assistant.
@@ -103,12 +100,11 @@ async function generateWithFallback(params) {
         const info = describeError(error);
         console.warn(
           `[FAIL] ${model} attempt ${attempt} after ${Date.now() - started} ms:`,
-          info
+          info.status || info.causeCode || info.name
         );
 
         // Quota exceeded or model missing: retrying the same model won't help
         if (info.status === 429 || info.status === 404) {
-          log(`${model} unavailable (${info.status}), moving to next model`);
           break;
         }
 
@@ -124,7 +120,6 @@ async function generateWithFallback(params) {
     }
   }
 
-  log("All models failed");
   throw lastError;
 }
 
@@ -133,17 +128,11 @@ app.post("/api/chat", async (req, res) => {
   try {
     if (!ai) {
       return res.status(500).json({
-        error: "Gemini API key is missing. Check your .env file."
+        error: "The server is missing its Gemini API key."
       });
     }
 
-    const { message, history = [], language = "en-IN" } = req.body;
-
-    log("Chat request:", {
-      messageLength: typeof message === "string" ? message.length : message,
-      historyItems: Array.isArray(history) ? history.length : "not an array",
-      language
-    });
+    const { message, history = [], language = "en-IN" } = req.body || {};
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "Please enter a message." });
@@ -182,11 +171,8 @@ app.post("/api/chat", async (req, res) => {
       }
     });
 
-    const reply = response.text;
-    log("Reply length:", reply ? reply.length : 0);
-
     res.json({
-      reply: reply || "Sorry, I could not generate a response."
+      reply: response.text || "Sorry, I could not generate a response."
     });
   } catch (error) {
     const info = describeError(error);
@@ -199,7 +185,7 @@ app.post("/api/chat", async (req, res) => {
       ? "The AI quota is used up for now. Please try again in a few minutes."
       : busy
         ? "The AI service is busy right now. Please try again in a moment."
-        : "AI connection failed. Check your API key and internet connection.";
+        : "AI connection failed. Please try again later.";
 
     if (DEBUG) {
       text += ` [debug: ${info.status || info.causeCode || info.name} - ${info.message}]`;
@@ -209,7 +195,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// ---------- Health and diagnostics ----------
+// ---------- Health check ----------
 app.get("/api/health", (req, res) => {
   res.json({
     status: "MedAura server is working",
@@ -217,46 +203,13 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.get("/api/debug", async (req, res) => {
-  const report = {
-    node: process.version,
-    keyLoaded: Boolean(apiKey),
-    network: null,
-    models: []
-  };
+// ---------- Start ----------
+// Locally: starts a server on port 3000.
+// On Vercel: the app is exported below and Vercel runs it as a function.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`MedAura running at http://localhost:${PORT}`);
+  });
+}
 
-  try {
-    const started = Date.now();
-    const r = await fetch("https://generativelanguage.googleapis.com/");
-    report.network = { reachable: true, httpStatus: r.status, ms: Date.now() - started };
-  } catch (error) {
-    report.network = { reachable: false, error: describeError(error) };
-  }
-
-  if (ai) {
-    for (const model of MODELS) {
-      const started = Date.now();
-      try {
-        const r = await ai.models.generateContent({
-          model,
-          contents: [{ role: "user", parts: [{ text: "Say OK" }] }],
-          config: { maxOutputTokens: 20 }
-        });
-        report.models.push({ model, ok: true, ms: Date.now() - started, reply: r.text });
-      } catch (error) {
-        report.models.push({
-          model,
-          ok: false,
-          ms: Date.now() - started,
-          error: describeError(error)
-        });
-      }
-    }
-  }
-
-  res.json(report);
-});
-
-app.listen(PORT, () => {
-  console.log(`MedAura running at http://localhost:${PORT}`);
-});
+export default app;

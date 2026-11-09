@@ -8,11 +8,22 @@ const language = document.getElementById("language");
 
 let history = [];
 let voiceEnabled = true;
+let isSending = false;
+
+// Safe listener: warns instead of crashing if an element ID is missing
+function on(id, event, handler) {
+    const el = document.getElementById(id);
+    if (!el) {
+        console.warn(`Element with id "${id}" not found in index.html`);
+        return;
+    }
+    el.addEventListener(event, handler);
+}
 
 // Add chat message
 function addMessage(text, type) {
 
-    welcome.style.display = "none";
+    if (welcome) welcome.style.display = "none";
 
     const message = document.createElement("div");
 
@@ -49,12 +60,16 @@ function speak(text) {
     speechSynthesis.speak(speech);
 }
 
-// Send message to Gemini backend
+// Send message to the backend
 async function sendMessage(message = input.value) {
 
-    const text = message.trim();
+    const text = String(message).trim();
 
     if (!text) return;
+
+    // Block double sends (button + Enter + mic firing together)
+    if (isSending) return;
+    isSending = true;
 
     addMessage(text, "user");
     input.value = "";
@@ -76,12 +91,11 @@ async function sendMessage(message = input.value) {
             })
         });
 
-        // Read the server response safely
         const raw = await response.text();
 
         if (!raw) {
             throw new Error(
-                "Server returned an empty response. Check server.js."
+                "The server returned an empty response. Please try again."
             );
         }
 
@@ -91,7 +105,7 @@ async function sendMessage(message = input.value) {
             data = JSON.parse(raw);
         } catch {
             throw new Error(
-                "Server did not return valid JSON. Check server.js and the terminal."
+                "The server returned an unexpected response. Please try again."
             );
         }
 
@@ -102,7 +116,7 @@ async function sendMessage(message = input.value) {
         const answer = data.reply;
 
         if (!answer) {
-            throw new Error("AI returned an empty answer.");
+            throw new Error("The AI returned an empty answer.");
         }
 
         addMessage(answer, "ai");
@@ -131,6 +145,7 @@ async function sendMessage(message = input.value) {
 
         loading.classList.add("hidden");
         sendBtn.disabled = false;
+        isSending = false;
 
     }
 }
@@ -165,26 +180,26 @@ document.querySelectorAll("[data-message]").forEach(button => {
 });
 
 // New chat
-document.getElementById("newChat").addEventListener("click", () => {
+on("newChat", "click", () => {
 
     history = [];
 
     chatMessages.innerHTML = "";
 
-    welcome.style.display = "block";
+    if (welcome) welcome.style.display = "block";
 
-    speechSynthesis.cancel();
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
 
 });
 
 // Voice output on/off
-document.getElementById("voiceToggle").addEventListener("click", function() {
+on("voiceToggle", "click", function() {
 
     voiceEnabled = !voiceEnabled;
 
     this.textContent = voiceEnabled ? "🔊" : "🔇";
 
-    if (!voiceEnabled) {
+    if (!voiceEnabled && "speechSynthesis" in window) {
         speechSynthesis.cancel();
     }
 
@@ -243,8 +258,8 @@ if (SpeechRecognition) {
 
         const messages = {
             "not-allowed": "Microphone is blocked. Click the lock icon in the address bar, allow the microphone, and reload the page.",
-            "service-not-allowed": "Speech recognition is blocked in this browser. Please use Chrome or Edge at http://localhost:3000.",
-            "audio-capture": "No microphone was found. Check that one is connected and enabled in Windows settings.",
+            "service-not-allowed": "Speech recognition is blocked in this browser. Please use Chrome or Edge.",
+            "audio-capture": "No microphone was found. Check that one is connected and enabled in your device settings.",
             "no-speech": "I didn't hear anything. Please try again and speak after the mic icon changes.",
             "network": "Speech recognition could not reach the internet speech service. Check your connection, VPN or antivirus.",
             "language-not-supported": "This language is not supported for voice input in your browser."
@@ -269,7 +284,7 @@ if (SpeechRecognition) {
 }
 
 // Find nearby hospitals
-document.getElementById("hospitalBtn").addEventListener("click", () => {
+on("hospitalBtn", "click", () => {
 
     if (!navigator.geolocation) {
 

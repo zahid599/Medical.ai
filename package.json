@@ -1,16 +1,15 @@
 {
-  "name": "medical.ai",
+  "name": "medical-ai",
   "version": "1.0.0",
-  "description": "",
-  "main": "Backend code – server.js",
+  "description": "MedAura - educational AI health assistant",
+  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
     "@google/genai": "^3.0.0",
     "dotenv": "^18.0.9",
