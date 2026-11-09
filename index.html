@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedAura - AI Medical Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <span>✚</span>
+            <div>
+                <h2>MedAura</h2>
+                <small>AI HEALTH COMPANION</small>
+            </div>
+        </div>
+
+        <button class="new-chat" id="newChat">
+            + New Chat
+        </button>
+
+        <h4>QUICK SYMPTOMS</h4>
+
+        <button class="symptom" data-message="I have a fever. What should I know?">
+            🌡️ Fever
+        </button>
+
+        <button class="symptom" data-message="I have a cold and cough. What should I know?">
+            🤧 Cold & Cough
+        </button>
+
+        <button class="symptom" data-message="I have a headache. What should I know?">
+            🧠 Headache
+        </button>
+
+        <button class="symptom" data-message="I have stomach pain. What should I know?">
+            🫧 Stomach Pain
+        </button>
+
+        <button class="symptom" data-message="I have a sore throat. What should I know?">
+            🗣️ Sore Throat
+        </button>
+
+        <button class="symptom" data-message="I feel tired. What should I know?">
+            🔋 Tiredness
+        </button>
+
+        <button class="hospital-button" id="hospitalBtn">
+            🏥 Find Nearby Hospital
+        </button>
+
+        <div class="sidebar-bottom">
+            <p>🛡️ Educational Health Assistant</p>
+        </div>
+
+    </aside>
+
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div>
+                <h3>AI Health Assistant</h3>
+                <span class="online">● Online</span>
+            </div>
+
+            <div class="settings">
+
+                <select id="language">
+                    <option value="en-IN">English</option>
+                    <option value="hi-IN">Hindi</option>
+                    <option value="kn-IN">Kannada</option>
+                </select>
+
+                <button id="voiceToggle">🔊</button>
+
+            </div>
+
+        </header>
+
+
+        <section class="chat-container">
+
+            <div class="welcome" id="welcome">
+
+                <div class="medical-icon">✚</div>
+
+                <h1>Hello! Welcome to <span>MedAura</span></h1>
+
+                <p>
+                    Your AI-powered educational health companion.
+                    Ask a health question or select a symptom below.
+                </p>
+
+                <div class="cards">
+
+                    <button class="card" data-message="Tell me about fever and common causes.">
+                        🌡️
+                        <h3>Fever</h3>
+                        <p>Learn about fever symptoms</p>
+                    </button>
+
+                    <button class="card" data-message="Tell me about common cold and cough.">
+                        🤧
+                        <h3>Cold & Cough</h3>
+                        <p>Learn about common cold</p>
+                    </button>
+
+                    <button class="card" data-message="Tell me about headache and common causes.">
+                        🧠
+                        <h3>Headache</h3>
+                        <p>Understand common triggers</p>
+                    </button>
+
+                    <button class="card" data-message="Tell me about stomach pain.">
+                        🫧
+                        <h3>Stomach Pain</h3>
+                        <p>Learn general information</p>
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div id="chatMessages"></div>
+
+            <div id="loading" class="loading hidden">
+                MedAura is thinking...
+            </div>
+
+        </section>
+
+
+        <footer class="footer">
+
+            <div class="input-box">
+
+                <textarea
+                    id="userInput"
+                    placeholder="Ask anything about your health..."
+                    rows="1">
+                </textarea>
+
+                <button id="micBtn" title="Speak">
+                    🎙️
+                </button>
+
+                <button id="sendBtn" title="Send">
+                    ➤
+                </button>
+
+            </div>
+
+            <p class="disclaimer">
+                MedAura is for educational purposes only.
+                It cannot diagnose diseases or replace a doctor.
+                For emergencies, seek immediate medical help.
+            </p>
+
+        </footer>
+
+    </main>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
+
